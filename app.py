@@ -9,72 +9,58 @@ import gradio as gr
 TITLE = "Playing Zork has never been so boring"
 
 DESCRIPTION = """
-In this assignment, you will build an AI Agent and an MCP server to play text adventure games like Zork.
+Build AI agents to play classic text adventure games (Zork, Colossal Cave, Enchanter, etc.) using the Model Context Protocol (MCP) and HuggingFace models.
 
-The evaluation server is not ready yet, but you can look at the templates by cloning this repository.
+This project provides:
+- **MCP Server** - Exposes text adventure games as MCP tools using FastMCP
+- **ReAct Agent** - An agent that uses MCP tools to play games with reasoning
+- **Submission Template** - Starter code for students to implement their own solutions
+- **Evaluation System** - Deterministic evaluation with seeded runs
+- **57 Games** - Zork trilogy, Infocom classics, and many more Z-machine games
 """
 
 CLONE_INSTRUCTIONS = """
 ## Getting Started
 
-### 1. Clone the Repository
+### 1. Fork the Template Space
 
-```bash
-git clone https://huggingface.co/spaces/LLM-course/Agentic-zork
-cd Agentic-zork
+Fork the template Space on Hugging Face:
+```
+https://huggingface.co/spaces/LLM-course/text-adventure-template
 ```
 
-### 2. Set Up Environment
+### 2. Clone Your Fork Locally
 
 ```bash
-# Create virtual environment (using uv recommended)
-uv venv
-source .venv/bin/activate
-
-# Install dependencies
-uv pip install -r requirements.txt
+git clone https://huggingface.co/spaces/YOUR_USERNAME/text-adventure-agent
+cd text-adventure-agent
 ```
 
-### 3. Configure API Token
+### 3. Implement Your Agent
+
+Edit these files:
+- `agent.py` - Your ReAct agent implementation (implement the `StudentAgent` class)
+- `mcp_server.py` - Your MCP server implementation (add tools like `play_action`, `memory`, etc.)
+
+### 4. Test Locally
 
 ```bash
-# Copy environment template
-cp .env.example .env
+# Test MCP server interactively
+fastmcp dev mcp_server.py
 
-# Edit .env and add your HuggingFace token
-# HF_TOKEN=hf_your_token_here
+# Run your agent
+python run_agent.py --agent . --game lostpig -v -n 20
 ```
 
-Get your HuggingFace token at: https://huggingface.co/settings/tokens
-
-### 4. Explore the Templates
-
-The submission template is in the `submission_template/` folder:
-
-- `agent.py` - Your agent implementation (implement the StudentAgent class)
-- `mcp_server.py` - Your MCP server implementation (add tools)
-- `README.md` - Detailed instructions
-
-A working example is in `examples/mcp_react/`.
-
-### 5. Test Your Implementation
+### 5. Push and Submit
 
 ```bash
-# Run the example agent
-python run_agent.py
-
-# Run with a different game
-python run_agent.py --game advent
-
-# List available games (57 total!)
-python run_agent.py --list-games
+git add -A
+git commit -m "Implement my agent"
+git push
 ```
 
-## Resources
-
-- [Submission Instructions](submission_template/README.md)
-- [FastMCP Documentation](https://gofastmcp.com/)
-- [MCP Protocol](https://modelcontextprotocol.io/)
+Then submit your Space URL on the course platform.
 """
 
 demo = gr.Blocks(title=TITLE)
