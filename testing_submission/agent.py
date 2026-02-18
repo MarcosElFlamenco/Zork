@@ -20,8 +20,9 @@ load_dotenv()
 # LLM Configuration - DO NOT MODIFY
 # =============================================================================
 
-LLM_MODEL = "Qwen/Qwen2.5-0.5B-Instruct"
-
+#LLM_MODEL = "Qwen/Qwen2.5-3B-Instruct"
+LLM_MODEL = "Qwen/Qwen2.5-72B-Instruct"
+#LLM_MODEL = "Qwen/Qwen2.5-0.5B-Instruct"
 _hf_token = os.getenv("HF_TOKEN")
 if not _hf_token:
     raise ValueError("HF_TOKEN not found. Set it in your .env file.")
@@ -131,6 +132,7 @@ class StudentAgent:
         self.history: list[dict] = []
         self.recent_actions: list[str] = []
         self.score: int = 0
+        print(f"Initialized StudentAgent, model will be {LLM_MODEL}")
     
     async def run(
         self,
@@ -139,7 +141,8 @@ class StudentAgent:
         max_steps: int,
         seed: int,
         verbose: bool = False,
-        debug_verbose: bool = True,
+        print_full_output: bool = False,
+        debug_verbose: bool = False,
     ) -> RunResult:
         """Run the agent for a game session."""
         locations_visited = set()
@@ -204,9 +207,11 @@ class StudentAgent:
             try:
                 result = await client.call_tool(tool_name, tool_args)
                 observation = self._extract_result(result)
-                
-                if verbose:
+                if print_full_output:
+                    print(f"[RESULT] {observation}...")
+                elif verbose:
                     print(f"[RESULT] {observation[:200]}...")
+                
             except Exception as e:
                 observation = f"Error: {e}"
                 if verbose:
@@ -398,6 +403,7 @@ async def test_agent():
             max_steps=20,
             seed=42,
             verbose=True,
+            print_full_output=True,
             debug_verbose=True,
         )
         

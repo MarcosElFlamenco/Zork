@@ -96,6 +96,8 @@ async def run_mcp_agent(args):
             game=args.game,
             max_steps=args.max_steps,
             seed=42,  # Using a fixed seed for direct running
+            print_full_output=args.print_full_output,
+            debug_verbose=args.debug_verbose,
             verbose=args.verbose,
         )
 
@@ -152,9 +154,19 @@ Examples:
         help="Maximum number of steps to run (default: 100)"
     )
     parser.add_argument(
+        "--print-full-output", "-p",
+        action="store_true",
+        help="Print full output of each tool call"
+    )
+    parser.add_argument(
         "--verbose", "-v",
         action="store_true",
-        help="Show detailed reasoning from the agent"
+        help="show detailed reasoning from the agent"
+    )
+    parser.add_argument(
+        "--debug-verbose", "-d",
+        action="store_true",
+        help="show debug-level information"
     )
 
     args = parser.parse_args()

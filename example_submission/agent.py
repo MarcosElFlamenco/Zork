@@ -136,6 +136,8 @@ class StudentAgent:
         game: str,
         max_steps: int,
         seed: int,
+        print_full_output: bool = False,
+        debug_verbose: bool = False,
         verbose: bool = False,
     ) -> RunResult:
         """Run the agent for a game session."""
