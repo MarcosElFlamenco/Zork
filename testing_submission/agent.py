@@ -16,18 +16,39 @@ from huggingface_hub import InferenceClient
 
 load_dotenv()
 
+
+# Set USE_LOCAL_MODEL=1 in your .env to use a locally downloaded model
+USE_LOCAL_MODEL = os.getenv("USE_LOCAL_MODEL", "0").strip() in ("1", "true", "yes")
+LOCAL_MODEL_ID = os.getenv("LOCAL_MODEL_ID", "Qwen/Qwen2.5-3B-Instruct")
+
+
 # =============================================================================
 # LLM Configuration - DO NOT MODIFY
 # =============================================================================
 
 #LLM_MODEL = "Qwen/Qwen2.5-3B-Instruct"
 LLM_MODEL = "Qwen/Qwen2.5-72B-Instruct"
-#LLM_MODEL = "Qwen/Qwen2.5-0.5B-Instruct"
-_hf_token = os.getenv("HF_TOKEN")
-if not _hf_token:
-    raise ValueError("HF_TOKEN not found. Set it in your .env file.")
 
-LLM_CLIENT = InferenceClient(token=_hf_token)
+
+# Initialize the LLM client based on mode
+_local_pipeline = None
+
+if USE_LOCAL_MODEL:
+    import torch
+    from transformers import pipeline as _hf_pipeline
+
+    _local_pipeline = _hf_pipeline(
+        "text-generation",
+        model=LOCAL_MODEL_ID,
+        torch_dtype=torch.bfloat16,
+        device_map="auto",
+    )
+    LLM_CLIENT = None
+else:
+    _hf_token = os.getenv("HF_TOKEN")
+    if not _hf_token:
+        raise ValueError("HF_TOKEN not found. Set it in your .env file.")
+    LLM_CLIENT = InferenceClient(token=_hf_token)
 
 
 PROMPT_HISTORY_FILE = "prompt_history"
@@ -39,6 +60,16 @@ def call_llm(prompt: str, system_prompt: str, seed: int, max_tokens: int = 300) 
         {"role": "user", "content": prompt},
     ]
     
+    if USE_LOCAL_MODEL and _local_pipeline is not None:
+        outputs = _local_pipeline(
+            messages,
+            max_new_tokens=max_tokens,
+            temperature=0.0001,  # Near-deterministic (0.0 unsupported by some backends)
+            do_sample=True,
+        )
+        return outputs[0]["generated_text"][-1]["content"]
+
+
     response = LLM_CLIENT.chat.completions.create(
         model=LLM_MODEL,
         messages=messages,
