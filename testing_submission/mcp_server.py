@@ -7,8 +7,6 @@ This demonstrates a full-featured server with memory, mapping, and inventory.
 
 import sys
 import os
-import io
-import contextlib
 
 # Add parent directory to path to import games module
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -29,11 +27,8 @@ class GameState:
     
     def __init__(self, game: str = "zork1"):
         self.game_name = game
-        # Suppress stdout during game environment initialization to avoid MCP protocol errors
-        # (spacy downloads and other package output should not interfere with JSON-RPC)
-        with contextlib.redirect_stdout(io.StringIO()):
-            self.env = TextAdventureEnv(game)
-            self.state = self.env.reset()
+        self.env = TextAdventureEnv(game)
+        self.state = self.env.reset()
         self.history: list[tuple[str, str]] = []
         self.explored_locations: dict[str, set[str]] = {}
         self.current_location: str = self._extract_location(self.state.observation)
