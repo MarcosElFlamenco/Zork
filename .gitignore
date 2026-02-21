@@ -102,9 +102,9 @@ celerybeat.pid
 #.env
 .venv
 venvc/
-env/
+#env/
 venv/
-ENV/
+#ENV/
 env.bak/
 venv.bak/
 
@@ -150,3 +150,4 @@ z-machine-games-master/
 om_common_workdir/
 
 prompt_history/
+results/

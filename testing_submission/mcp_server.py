@@ -7,6 +7,8 @@ This demonstrates a full-featured server with memory, mapping, and inventory.
 
 import sys
 import os
+import io
+import contextlib
 
 # Add parent directory to path to import games module
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -27,11 +29,15 @@ class GameState:
     
     def __init__(self, game: str = "zork1"):
         self.game_name = game
-        self.env = TextAdventureEnv(game)
-        self.state = self.env.reset()
+        # Suppress stdout during game environment initialization to avoid MCP protocol errors
+        # (spacy downloads and other package output should not interfere with JSON-RPC)
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.env = TextAdventureEnv(game)
+            self.state = self.env.reset()
         self.history: list[tuple[str, str]] = []
         self.explored_locations: dict[str, set[str]] = {}
         self.current_location: str = self._extract_location(self.state.observation)
+        self.saved_states = {}  # Dictionary to store saved game states
     
     def _extract_location(self, observation: str) -> str:
         """Extract location name from observation (usually first line)."""
@@ -66,16 +72,16 @@ class GameState:
         recent_str = "\n".join([f"  > {a} -> {r[:60]}..." for a, r in recent]) if recent else "  (none yet)"
         
         return f"""Current State:
-- Location: {self.current_location}
-- Score: {self.state.score} points
-- Moves: {self.state.moves}
-- Game: {self.game_name}
+    - Location: {self.current_location}
+    - Score: {self.state.score} points
+    - Moves: {self.state.moves}
+    - Game: {self.game_name}
 
-Recent Actions:
-{recent_str}
+    Recent Actions:
+    {recent_str}
 
-Current Observation:
-{self.state.observation}"""
+    Current Observation:
+    {self.state.observation}"""
     
     def get_map(self) -> str:
         """Get a map of explored locations."""
@@ -115,6 +121,52 @@ Current Observation:
                 item_names.append(item_str)
         
         return f"Inventory: {', '.join(item_names)}"
+    
+    def get_valid_actions(self) -> str:
+        """Get list of valid actions available in current state."""
+        try:
+            actions = self.env.get_valid_actions()
+            if not actions:
+                return "No valid actions available."
+            return "Valid Actions:\n" + "\n".join(f"  - {action}" for action in actions)
+        except Exception as e:
+            return f"Could not retrieve valid actions: {e}"
+    
+    def check_vocabulary(self, word: str) -> str:
+        """Check if a specific word is understood by the game engine."""
+        try:
+            vocab = self.env.get_dictionary()
+            # Jericho dictionaries often store the first 6-9 characters of a word
+            # due to Z-machine limitations, so check for partial matches.
+            word_lower = word.lower()
+            matches = [w for w in vocab if w.startswith(word_lower[:6])]
+            
+            if matches:
+                return f"Yes, the game understands '{word}' (matches: {', '.join(matches)})."
+            return f"No, the game does NOT understand the word '{word}'. Try a different synonym."
+        except Exception as e:
+            return f"Could not check vocabulary: {e}"
+    
+    def save_game(self, slot_name: str) -> str:
+        """Save the current game state to a named slot."""
+        try:
+            self.saved_states[slot_name] = self.env.get_state()
+            return f"Game saved successfully to slot: '{slot_name}'"
+        except Exception as e:
+            return f"Error saving game to slot '{slot_name}': {e}"
+    
+    def load_game(self, slot_name: str) -> str:
+        """Load a previously saved game state from a named slot."""
+        if slot_name not in self.saved_states:
+            return f"Error: No save found in slot '{slot_name}'"
+        try:
+            self.env.set_state(self.saved_states[slot_name])
+            # Refresh the observation after loading
+            self.state = self.env.step("look")
+            self.current_location = self._extract_location(self.state.observation)
+            return f"Game loaded from slot: '{slot_name}'.\nCurrent location: {self.state.observation}"
+        except Exception as e:
+            return f"Error loading game from slot '{slot_name}': {e}"
 
 
 # Global game state
@@ -146,7 +198,7 @@ def play_action(action: str) -> str:
     """
     game = get_game()
     result = game.take_action(action)
-    
+
     # Add score info
     score_info = f"\n\n[Score: {game.state.score} | Moves: {game.state.moves}]"
     
@@ -186,6 +238,53 @@ def inventory() -> str:
     Check what items you are currently carrying.
     """
     return get_game().get_inventory()
+
+
+@mcp.tool()
+def valid_actions() -> str:
+    """
+    Get the list of valid actions you can perform in the current game state.
+    
+    Returns a list of actions that are currently available.
+    """
+    return get_game().get_valid_actions()
+
+
+@mcp.tool()
+def check_vocabulary(word: str) -> str:
+    """
+    Check if a specific word is understood by the game engine.
+    Use this before trying unusual verbs or interacting with weird objects.
+    """
+    return get_game().check_vocabulary(word)
+
+
+@mcp.tool()
+def save_state(slot_name: str) -> str:
+    """
+    Save the current game state to a named slot before doing something risky.
+    
+    Args:
+        slot_name: Name of the save slot (e.g., "before_combat", "checkpoint_1")
+    
+    Returns:
+        Confirmation message
+    """
+    return get_game().save_game(slot_name)
+
+
+@mcp.tool()
+def load_state(slot_name: str) -> str:
+    """
+    Load a previously saved game state if you died or made a mistake.
+    
+    Args:
+        slot_name: Name of the save slot to load from
+    
+    Returns:
+        Confirmation message with current location
+    """
+    return get_game().load_game(slot_name)
 
 
 # =============================================================================

@@ -104,6 +104,10 @@ AVAILABLE TOOLS (use these via MCP):
 2. memory - Get current game state, score, and recent history
 3. get_map - See explored locations and connections
 4. inventory - Check what you're carrying
+5. valid_actions - Get the list of valid actions available right now
+6. check_vocabulary(word) - Check if a word is understood by the game
+7. save_state(slot_name) - Save game state before taking risks that could lead to death or getting stuck
+8. load_state(slot_name) - Load a previously saved game state
 
 VALID GAME COMMANDS for play_action:
 - Movement: north, south, east, west, up, down, enter, exit
@@ -128,17 +132,28 @@ THOUGHT: Let me check my current state and score.
 TOOL: memory
 ARGS: {}
 
-THOUGHT: The mailbox might contain something useful.
-TOOL: play_action
-ARGS: {"action": "open mailbox"}
+THOUGHT: I should see what actions are available here before trying random commands.
+TOOL: valid_actions
+ARGS: {}
+
+THOUGHT: Before I attack the troll, let me save my progress in case it goes wrong.
+TOOL: save_state
+ARGS: {"slot_name": "before_troll"}
+
+THOUGHT: That didn't work. Let me reload my save.
+TOOL: load_state
+ARGS: {"slot_name": "before_troll"}
 
 STRATEGY:
-1. Start by looking around and checking memory
-2. Explore systematically - try all directions
-3. Pick up useful items (lamp, sword, etc.)
-4. Open containers (mailbox, window, etc.)
-5. Use get_map to avoid getting lost
-6. Turn on lamp before dark areas!
+1. Use valid_actions to see what you can do
+2. Start by looking around and checking memory
+3. Explore systematically - try all directions
+4. Pick up useful items (lamp, sword, etc.)
+5. Save before doing something risky (combat, puzzles, etc.)
+6. Open containers (mailbox, window, etc.)
+7. Use get_map to avoid getting lost
+8. Turn on lamp before dark areas!
+9. Use check_vocabulary if unsure if the game understands a word
 
 DO NOT repeat the same action multiple times in a row."""
 
