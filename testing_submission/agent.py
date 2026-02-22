@@ -37,11 +37,14 @@ if USE_LOCAL_MODEL:
     import torch
     from transformers import pipeline as _hf_pipeline
 
+    # Determine device
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    
     _local_pipeline = _hf_pipeline(
         "text-generation",
         model=LOCAL_MODEL_ID,
-        torch_dtype=torch.bfloat16,
-        device_map="auto",
+        device=device,
+        torch_dtype=torch.float16 if device == "cuda" else torch.float32,
     )
     LLM_CLIENT = None
 else:
@@ -65,10 +68,8 @@ def call_llm(prompt: str, system_prompt: str, seed: int, max_tokens: int = 300) 
             messages,
             max_new_tokens=max_tokens,
             temperature=0.0001,  # Near-deterministic (0.0 unsupported by some backends)
-            do_sample=True,
         )
         return outputs[0]["generated_text"][-1]["content"]
-
 
     response = LLM_CLIENT.chat.completions.create(
         model=LLM_MODEL,
@@ -338,7 +339,7 @@ class StudentAgent:
                 thought = line_clean.split(":", 1)[1].strip()
             
             elif line_upper.startswith("TOOL:"):
-                raw_tool = line_clean.split(":", 1)[1].strip().lower()
+                raw_tool = line_clean.split(":", 1)[1].lsstrip().lower()
                 raw_tool = raw_tool.replace("**", "").replace("*", "").replace("`", "")
                 raw_tool = raw_tool.split()[0] if raw_tool else "play_action"
                 tool_name = raw_tool

@@ -120,11 +120,22 @@ class GameState:
     def get_valid_actions(self) -> str:
         """Get list of valid actions available in current state."""
         try:
+            import sys
+            sys.stderr.write("[DEBUG] Calling env.get_valid_actions()...\n")
+            sys.stderr.flush()
+            
             actions = self.env.get_valid_actions()
+            
+            sys.stderr.write(f"[DEBUG] Got {len(actions)} actions\n")
+            sys.stderr.flush()
+            
             if not actions:
                 return "No valid actions available."
             return "Valid Actions:\n" + "\n".join(f"  - {action}" for action in actions)
         except Exception as e:
+            import sys
+            sys.stderr.write(f"[ERROR] get_valid_actions failed: {e}\n")
+            sys.stderr.flush()
             return f"Could not retrieve valid actions: {e}"
     
     def check_vocabulary(self, word: str) -> str:
